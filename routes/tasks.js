@@ -60,7 +60,8 @@ module.exports = function(router){
             const count = req.query.count ==='true';
             console.log(count);
             let curr_query = Task.find(where).sort(sort).select(select).skip(skip);
-            if (limit > 0) curr_query = curr_query.limit(limit);
+            curr_query = curr_query.limit(limit);
+            console.log(curr_query);
             if(count){
                 const task_cnt = await Task.countDocuments(where);
                 res.status(200).json({ message: 'OK', data:task_cnt });
@@ -116,7 +117,7 @@ module.exports = function(router){
             if(!updated_task){
                 return res.status(404).json({message:"Task not found",data:{}});
             }
-            if(updated_task.completed){
+            if(updated_task.completed && updated_task.assignedUserName !== 'unassigned'){
                 await User.findByIdAndUpdate(updated_task.assignedUser, {$pull: { pendingTasks:updated_task._id }});
             }
             res.status(200).json({message:"Task updated successfully", data:updated_task});

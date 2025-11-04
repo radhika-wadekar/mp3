@@ -38,7 +38,7 @@ module.exports = function(router){
             let select = {};
             let skip = 0;
 
-            let limit = 100;
+            let limit = 0;
             if(req.query.where){
                 where = JSON.parse(req.query.where);
             }
@@ -57,7 +57,9 @@ module.exports = function(router){
             const count = req.query.count ==='true';
             console.log(count);
             let curr_query = User.find(where).sort(sort).select(select).skip(skip);
-            if (limit > 0) curr_query = curr_query.limit(limit);
+            if(limit!=0){
+                curr_query = curr_query.limit(limit);
+            }
             if(count){
                 const user_cnt = await User.countDocuments(where);
                 res.status(200).json({ message: 'OK', data: user_cnt });
