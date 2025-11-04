@@ -33,8 +33,39 @@ module.exports = function(router){
     });
     usersRoute.get(async (req,res)=>{
          try {
-            const curr_users = await User.find();
-            res.status(200).json({ message: '', data:curr_users });
+            let where = {};
+            let sort = {};
+            let select = {};
+            let skip = 0;
+
+            let limit = 100;
+            if(req.query.where){
+                where = JSON.parse(req.query.where);
+            }
+            if(req.query.sort){
+                sort = JSON.parse(req.query.sort);
+            }
+            if(req.query.select){
+                select = JSON.parse(req.query.select);
+            }
+            if(req.query.skip){
+                skip = parseInt(req.query.skip);
+            }
+            if(req.query.limit){
+                limit = parseInt(req.query.limit);
+            }
+            const count = req.query.count ==='true';
+            console.log(count);
+            let curr_query = User.find(where).sort(sort).select(select).skip(skip);
+            if (limit > 0) curr_query = curr_query.limit(limit);
+            if(count){
+                const user_cnt = await User.countDocuments(where);
+                res.status(200).json({ message: 'OK', data: user_cnt });
+            }
+            else{
+                const curr_users = await curr_query.exec();
+                res.status(200).json({ message: 'OK', data:curr_users });
+            }
         }
         catch(err) {
             console.log(err);
@@ -43,16 +74,22 @@ module.exports = function(router){
     });
 
     usersIdRoute.get(async (req,res)=>{
-        try{
-            const curr_user = await User.findById(req.params.id);
-            console.log(curr_user);
-            res.status(200).json({message:'OK',data:curr_user});
-        }
-        catch(err){
-            res.status(500).json({message:'Server error',data:{}});
-
-
-        }
+       try{
+           let select = {};
+           if(req.query.select){
+               select = JSON.parse(req.query.select);
+           }
+           const curr_query = User.findById(req.params.id).select(select);
+           const curr_user = await curr_query.exec();
+           console.log(curr_user);
+           if (!curr_user) {
+               return res.status(404).json({ message: 'User not found', data: {} });
+           }
+           res.status(200).json({message:'OK',data:curr_user});
+       }
+       catch(err){
+           res.status(500).json({message:'Server error',data:{}});
+       }
     });
 
     usersIdRoute.put(async (req,res)=>{
@@ -88,7 +125,7 @@ module.exports = function(router){
                 if(!pre_user){
                     return res.status(404).json({message:"User not found",data:{}});
                 }
-                await Task.updateMany({assignedUser:pre_user._id},{assignedUser: "",assignedUserName: ""});
+                await Task.updateMany({assignedUser:pre_user._id},{assignedUser: "",assignedUserName: "unassigned"});
                 const deleted_user = await User.findByIdAndDelete(req.params.id);
                 res.status(200).json({message:"User deleted successfully", data:deleted_user});
             }
